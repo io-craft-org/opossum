@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include opossum *.css
+recursive-include opossum *.csv
+recursive-include opossum *.html
+recursive-include opossum *.ico
+recursive-include opossum *.js
+recursive-include opossum *.json
+recursive-include opossum *.md
+recursive-include opossum *.png
+recursive-include opossum *.py
+recursive-include opossum *.svg
+recursive-include opossum *.txt
+recursive-exclude opossum *.pyc
