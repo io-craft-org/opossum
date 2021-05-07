@@ -1,0 +1,9 @@
+[
+	{
+		  "doctype": "Item",
+      "name": "Article1",
+      "item_code": "article1",
+      "stock_uom": "Meter",
+      "item_group": "Services"
+	}
+]
