@@ -32,15 +32,16 @@
    "reqd": 1
   },
   {
+   "default": "0",
    "fieldname": "is_enabled",
-   "fieldtype": "Select",
+   "fieldtype": "Check",
    "label": "Is enabled"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-05-07 15:09:10.861456",
+ "modified": "2021-05-07 15:20:06.477299",
  "modified_by": "Administrator",
  "module": "Opossum",
  "name": "Hiboutik Settings",
