@@ -16,20 +16,17 @@
    "fieldname": "instance_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Instance Name",
-   "reqd": 1
+   "label": "Instance Name"
   },
   {
    "fieldname": "username",
    "fieldtype": "Data",
-   "label": "Username",
-   "reqd": 1
+   "label": "Username"
   },
   {
    "fieldname": "api_key",
    "fieldtype": "Data",
-   "label": "API Key",
-   "reqd": 1
+   "label": "API Key"
   },
   {
    "default": "0",
@@ -41,7 +38,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-05-07 15:20:06.477299",
+ "modified": "2021-05-07 19:58:09.612092",
  "modified_by": "Administrator",
  "module": "Opossum",
  "name": "Hiboutik Settings",

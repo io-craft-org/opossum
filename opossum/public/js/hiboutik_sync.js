@@ -3,6 +3,9 @@ frappe.ui.form.on("Item", "refresh", function(frm) {
 				frappe.call({
 						type:"POST",
 						method:"opossum.opossum.doctype.hiboutik_settings.hiboutik_settings.sync_item",
+            args: {
+					      json_doc: frm.doc
+				    },
 				}).done(() => {
 						frappe.show_alert({
 							  indicator: "green",
