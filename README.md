@@ -1,7 +1,9 @@
 ## Opossum
 
-POS integration
+POS integrations
+
+ - Hiboutik <http://hiboutik.com/>
 
 #### License
 
-GPLv
+GPLv3
