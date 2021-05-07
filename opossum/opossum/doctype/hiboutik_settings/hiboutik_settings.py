@@ -11,7 +11,19 @@ from opossum.opossum.model import Item
 
 
 class HiboutikSettings(Document):
-    pass
+    def validate(self):
+        validate_settings()
+
+    def validate_settings(self):
+        if self.is_disabled:
+			if not self.instance_name:
+				frappe.throw(_("Please enter an instance name"))
+
+            if not self.username:
+				frappe.throw(_("Please enter a username"))
+
+			if not self.api_key:
+				frappe.throw(_("Please enter an API key"))
 
 
 @frappe.whitelist()
@@ -22,14 +34,15 @@ def sync_item(item_code):
 
     hiboutik_settings = frappe.get_doc("Hiboutik Settings")
 
-    if hiboutik_settings.is_enabled:
+    if not hiboutik_settings.is_enabled:
         return False
 
     hiboutik = HiboutikConnector(
         account=hiboutik_settings.instance_name,
-        username=hiboutik_settings.username,
+        user=hiboutik_settings.username,
         api_key=hiboutik_settings.api_key,
     )
+
     hiboutik.sync(item)
 
     return True

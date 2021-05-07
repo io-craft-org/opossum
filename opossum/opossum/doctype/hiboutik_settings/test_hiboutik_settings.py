@@ -4,8 +4,10 @@
 from __future__ import unicode_literals
 
 import unittest
+from unittest.mock import patch
 
 import frappe
+from opossum.opossum.hiboutik import HiboutikConnector
 from opossum.opossum.model import Item
 
 from .hiboutik_settings import sync_item
@@ -14,8 +16,36 @@ test_records = frappe.get_test_records("Item")
 
 
 class TestHiboutikSettings(unittest.TestCase):
+    def test_sync_one_item_if_disabled(self):
+        settings = frappe.get_doc("Hiboutik Settings")
+        settings.is_enabled = False
+        settings.save()
+
+        assert sync_item("article1") == False
+
+    def test_sync_one_item_with_wrong_credentials(self):
+        settings = frappe.get_doc("Hiboutik Settings")
+        settings.is_enabled = True
+        settings.instance_name = "wrong instance name"
+        settings.username = "wrong username"
+        settings.api_key = "wrong api key"
+        settings.save()
+
+        with patch.object(HiboutikConnector, "sync", return_value=False) as mock_method:
+            assert sync_item("article1") == False
+            mock_method.assert_called_once()
+
     def test_sync_one_item(self):
-        assert sync_item("article1") == True
+        settings = frappe.get_doc("Hiboutik Settings")
+        settings.is_enabled = True
+        settings.instance_name = "valid instance name"
+        settings.username = "valid username"
+        settings.api_key = "valid api key"
+        settings.save()
+
+        with patch.object(HiboutikConnector, "sync", return_value=True) as mock_method:
+            assert sync_item("article1") == True
+            mock_method.assert_called_once()
 
     def test_model_is_fed_from_item(self):
         doc = frappe.get_doc("Item", "article1")
