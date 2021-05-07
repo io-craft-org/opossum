@@ -56,28 +56,19 @@ class HiboutikAPI:
         response = self.session.get(
             f"{self.api_root}/products", auth=HTTPBasicAuth(self.user, self.api_key)
         )
-        from pprint import pprint
-        pprint(response.text)
-        LOGGER.info(f"HIBOUTIK get products>{response.text}")
+        LOGGER.debug(f"HIBOUTIK get products>{response.text}")
 
     def post_product(self, product: Product):
         response = self.session.post(
             f"{self.api_root}/products",
             auth=HTTPBasicAuth(self.user, self.api_key),
-            data=product.__dict__,  # Will the conversion to dict be automatic?
+            data=product.__dict__,
         )
-        from pprint import pprint
-        pprint(response.text)
-        LOGGER.info(f"HIBOUTIK post product>{response.text}")
+        LOGGER.debug(f"HIBOUTIK post product>{response.text}")
 
     def get(self, route):
         response = self.session.get(
             f"{self.api_root}{route}",
             auth=HTTPBasicAuth(self.user, self.api_key)
         )
-        import logging
-        logging.info(f"GET {self.api_root}{route}")
-        print(f"GET {self.api_root}{route}")
-        from pprint import pprint
-        pprint(response.text)
-        LOGGER.info(f"HIBOUTIK post product>{response.text}")
+        LOGGER.debug(f"HIBOUTIK get {self.api_root}{route}>{response.text}")
