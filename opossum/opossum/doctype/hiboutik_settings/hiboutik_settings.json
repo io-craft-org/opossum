@@ -6,6 +6,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "is_enabled",
   "instance_name",
   "username",
   "api_key"
@@ -29,12 +30,17 @@
    "fieldtype": "Data",
    "label": "API Key",
    "reqd": 1
+  },
+  {
+   "fieldname": "is_enabled",
+   "fieldtype": "Select",
+   "label": "Is enabled"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-05-07 15:01:41.474185",
+ "modified": "2021-05-07 15:09:10.861456",
  "modified_by": "Administrator",
  "module": "Opossum",
  "name": "Hiboutik Settings",
