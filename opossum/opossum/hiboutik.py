@@ -23,24 +23,17 @@ class HiboutikConnector:
         self.api = api
 
     def sync(self, item: Item):
-        product = self.find_product(item)
-        if product:
-            self.api.update_product(product.product_id, Product.create(item))
+        if item.external_id:
+            # FIXME: handle partial update due to some failures (some calls succeed, some don't).
+            existing_product = self.api.get_product(item.external_id)
+            update = []
+            existing_data = existing_product.data
+            for k, v in Product.create(item).data.items():
+                if existing_data[k] != v:
+                    update.append(ProductAttribute(k, v))
+            self.api.update_product(item.external_id, update)
         else:
             self.api.post_product(Product.create(item))
-
-    def find_product(self, item: Item):
-        all_products = self.api.get_products()
-        matching_products = list(
-            filter(lambda x: x.products_ref_ext == item.code, all_products)
-        )
-        if len(matching_products) == 1:
-            return matching_products[0]
-        elif len(matching_products) > 1:
-            raise HiboutikStoreError(
-                "Multiple products have the same external reference '%s'", item.code
-            )
-        return None
 
 
 @dataclass
@@ -49,7 +42,6 @@ class Product:
     product_model: str
     product_price: str
     product_vat: int
-    products_ref_ext: str
     product_id: int = None
 
     @classmethod
@@ -58,7 +50,7 @@ class Product:
             product_model=item.name,
             product_price=str(item.price),
             product_vat=item.vat,
-            products_ref_ext=item.code,
+            product_id=item.external_id,
         )
 
     @classmethod
@@ -68,7 +60,6 @@ class Product:
             product_model=data["product_model"],
             product_price=data["product_price"],
             product_vat=data["product_vat"],
-            products_ref_ext=data["products_ref_ext"],
         )
 
     @property
@@ -79,6 +70,12 @@ class Product:
         except KeyError:
             pass
         return rv
+
+
+@dataclass
+class ProductAttribute:
+    product_attribute: str
+    new_value: str
 
 
 class HiboutikAPI:
@@ -136,8 +133,6 @@ class HiboutikAPI:
         else:
             raise HiboutikAPIError(response.json())
 
-    def update_product(self, product_id: int, product: Product):
-        current_data = self.get_product(product_id).data
-        for k, v in product.data.items():
-            if current_data[k] != v:
-                self._put_product(product_id, {"product_attribute": k, "new_value": v})
+    def update_product(self, product_id: int, update: List[ProductAttribute]):
+        for pa in update:
+            self._put_product(product_id, pa.__dict__)

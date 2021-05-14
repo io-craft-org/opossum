@@ -7,3 +7,4 @@ class Item:
     name: str
     price: str
     vat: int
+    external_id: str = ""
