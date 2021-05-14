@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import frappe
-from opossum.opossum.hiboutik import HiboutikConnector
+from opossum.opossum.hiboutik import HiboutikAPIError, HiboutikConnector
 from opossum.opossum.models import Item
 
 from .hiboutik_settings import pos_invoice_webhook, sync_item
@@ -35,12 +35,14 @@ class TestHiboutikSettings(unittest.TestCase):
         settings.api_key = "wrong api key"
         settings.save()
 
-        with patch.object(HiboutikConnector, "sync", return_value=False) as mock_method:
+        with patch.object(HiboutikConnector, "sync") as mock_method:
+            mock_method.side_effect = HiboutikAPIError()
             article_json = json.JSONEncoder().encode(
                 {"item_code": "article1", "name": "An article"}
             )
-            assert sync_item(article_json) == False
-            mock_method.assert_called_once()
+
+            with self.assertRaises(HiboutikAPIError) as context:
+                sync_item(article_json)
 
     def test_sync_one_item(self):
         settings = frappe.get_doc("Hiboutik Settings")
@@ -50,9 +52,11 @@ class TestHiboutikSettings(unittest.TestCase):
         settings.api_key = "valid api key"
         settings.save()
 
-        with patch.object(HiboutikConnector, "sync", return_value=True) as mock_method:
+        item = Item(code="article1", name="An Article", price="10", vat=1)
+
+        with patch.object(HiboutikConnector, "sync", return_value=item) as mock_method:
             article_json = json.JSONEncoder().encode(
-                {"item_code": "article1", "name": "An article"}
+                {"item_code": item.code, "name": item.name}
             )
             assert sync_item(article_json) == True
             mock_method.assert_called_once()

@@ -72,7 +72,11 @@ def sync_item(json_doc):
         return False
 
     item = Item(
-        code=item_doc["item_code"], name=item_doc["name"], price=10.0, vat=1
+        code=item_doc["item_code"],
+        name=item_doc["name"],
+        external_id=item_doc["hiboutik_id"],
+        price=20.0,
+        vat=1,
     )  # FIXME Hardcoded VAT and Price
 
     hiboutik_settings = frappe.get_doc("Hiboutik Settings")
@@ -88,7 +92,13 @@ def sync_item(json_doc):
 
     connector = HiboutikConnector(hiboutik_api)
 
-    connector.sync(item)
+    updated_item = connector.sync(item)
+
+    erp_item = frappe.get_doc("Item", updated_item.code)
+    if erp_item.hiboutik_id != updated_item.external_id:
+        erp_item.hiboutik_id = updated_item.external_id
+        erp_item.save()
+        # FIXME Request page reload
 
     return True
 

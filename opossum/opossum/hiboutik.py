@@ -33,7 +33,9 @@ class HiboutikConnector:
                     update.append(ProductAttribute(k, v))
             self.api.update_product(item.external_id, update)
         else:
-            self.api.post_product(Product.create(item))
+            item.external_id = str(self.api.post_product(Product.create(item)))
+
+        return item
 
 
 @dataclass
