@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Item:
-    code: int
+    code: str
     name: str
-    price: int
+    price: str
     vat: int
