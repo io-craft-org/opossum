@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 
 import pytest
 
@@ -68,6 +68,17 @@ def test_create_product(connector, api):
     connector.sync(item)
     assert api.get_products.called is True
     assert api.post_product.called is True
+
+
+def test_sync_item_update_product(matching_product, item, connector, api):
+    connector.find_product = MagicMock()
+    connector.find_product.return_value = matching_product
+    api.update_product.return_value = None
+
+    connector.sync(item)
+
+    assert connector.find_product.called is True
+    assert api.update_product.called is True
 
 
 def test_find_product(products_with_match, matching_product, item, connector, api):
