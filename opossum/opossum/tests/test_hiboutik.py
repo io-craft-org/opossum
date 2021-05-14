@@ -1,9 +1,9 @@
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
-
-from opossum.opossum.hiboutik import HiboutikConnector, Product, HiboutikStoreError
-from opossum.opossum.model import Item
+from opossum.opossum.hiboutik import (HiboutikConnector, HiboutikStoreError,
+                                      Product)
+from opossum.opossum.models import Item
 
 
 @pytest.fixture

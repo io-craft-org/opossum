@@ -5,7 +5,7 @@ from typing import List
 import requests
 from requests.auth import HTTPBasicAuth
 
-from opossum.opossum.model import Item
+from opossum.opossum.models import Item
 
 LOGGER = getLogger(__name__)
 

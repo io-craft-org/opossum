@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 import frappe
 from opossum.opossum.hiboutik import HiboutikConnector
-from opossum.opossum.model import Item
+from opossum.opossum.models import Item
 
-from .hiboutik_settings import sync_item
+from .hiboutik_settings import pos_invoice_webhook, sync_item
 
 test_records = frappe.get_test_records("Item")
 
@@ -78,3 +78,8 @@ class TestHiboutikSettings(unittest.TestCase):
         item_dt = frappe.get_meta("Item")
 
         assert item_dt.has_field("hiboutik_id") is True
+
+
+class TestHiboutikWebhooks(unittest.TestCase):
+    def test_pos_invoice_received(self):
+        assert pos_invoice_webhook("") is True
