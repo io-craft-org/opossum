@@ -3,6 +3,7 @@
 # See license.txt
 from __future__ import unicode_literals
 
+import json
 import unittest
 from unittest.mock import patch
 
@@ -21,7 +22,8 @@ class TestHiboutikSettings(unittest.TestCase):
         settings.is_enabled = False
         settings.save()
 
-        assert sync_item("article1") == False
+        article_json = json.JSONEncoder().encode({"item_code": "article1", "name": "An article"})
+        assert sync_item(article_json) == False
 
     def test_sync_one_item_with_wrong_credentials(self):
         settings = frappe.get_doc("Hiboutik Settings")
@@ -32,7 +34,8 @@ class TestHiboutikSettings(unittest.TestCase):
         settings.save()
 
         with patch.object(HiboutikConnector, "sync", return_value=False) as mock_method:
-            assert sync_item("article1") == False
+            article_json = json.JSONEncoder().encode({"item_code": "article1", "name": "An article"})
+            assert sync_item(article_json) == False
             mock_method.assert_called_once()
 
     def test_sync_one_item(self):
@@ -44,7 +47,8 @@ class TestHiboutikSettings(unittest.TestCase):
         settings.save()
 
         with patch.object(HiboutikConnector, "sync", return_value=True) as mock_method:
-            assert sync_item("article1") == True
+            article_json = json.JSONEncoder().encode({"item_code": "article1", "name": "An article"})
+            assert sync_item(article_json) == True
             mock_method.assert_called_once()
 
     def test_model_is_fed_from_item(self):
