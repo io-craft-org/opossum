@@ -60,7 +60,7 @@ def products_with_match(matching_product):
     ]
 
 
-def test_create_product(connector, api):
+def test_sync_item_create_product(connector, api):
     api.get_products.return_value = []
     api.post_product.return_value = 1
 
