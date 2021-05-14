@@ -9,7 +9,7 @@ import json
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 from frappe.model.document import Document
-from opossum.opossum.hiboutik import HiboutikConnector
+from opossum.opossum.hiboutik import HiboutikAPI, HiboutikConnector
 from opossum.opossum.model import Item
 from six import string_types
 
@@ -74,13 +74,15 @@ def sync_item(json_doc):
     if not hiboutik_settings.enable_sync:
         return False
 
-    hiboutik = HiboutikConnector(
+    hiboutik_api = HiboutikAPI(
         account=hiboutik_settings.instance_name,
         user=hiboutik_settings.username,
         api_key=hiboutik_settings.api_key,
     )
 
-    hiboutik.sync(item)
+    connector = HiboutikConnector(hiboutik_api)
+
+    connector.sync(item)
 
     return True
 
