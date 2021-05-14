@@ -4,12 +4,13 @@ from dataclasses import dataclass
 
 @dataclass
 class Item:
-    """An proxy Item to hide ERPNext internals"""
+    """A proxy Item to hide ERPNext internals"""
 
     code: str
     name: str
     price: str
     vat: int
+    external_id: str = ""
 
 
 @dataclass
