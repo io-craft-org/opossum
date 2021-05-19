@@ -10,7 +10,8 @@
   "instance_name",
   "username",
   "api_key",
-  "pos_profile"
+  "pos_profile",
+  "pos_invoice_webhook"
  ],
  "fields": [
   {
@@ -40,12 +41,18 @@
    "fieldtype": "Link",
    "label": "POS Profile",
    "options": "POS Profile"
+  },
+  {
+   "fieldname": "pos_invoice_webhook",
+   "fieldtype": "Read Only",
+   "label": "POS Invoice webhook",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-05-19 11:05:10.106268",
+ "modified": "2021-05-19 14:40:35.598814",
  "modified_by": "Administrator",
  "module": "Opossum",
  "name": "Hiboutik Settings",
