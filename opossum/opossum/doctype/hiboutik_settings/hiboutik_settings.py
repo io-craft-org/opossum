@@ -2,6 +2,9 @@
 # Copyright (c) 2021, ioCraft and contributors
 # For license information, please see license.txt
 
+# Part of the code inspired by
+# https://gitlab.com/dokos/dokos/-/blob/develop/erpnext/erpnext_integrations/doctype/woocommerce_settings/woocommerce_settings.py
+
 from __future__ import unicode_literals
 
 import json
@@ -18,12 +21,16 @@ from opossum.opossum.models import Item
 from opossum.opossum.pos_utils import (get_or_create_opening_entry,
                                        make_pos_invoice)
 from six import string_types
+from six.moves.urllib.parse import urlparse
 
 
 class HiboutikSettings(Document):
     def validate(self):
         self.validate_settings()
-        self.create_delete_custom_fields()
+        self.create_custom_fields()
+
+    def on_update(self):
+        self.make_and_set_webhook_urls()
 
     def validate_settings(self):
         """ If enabled, force connection info fields to be filled """
@@ -40,7 +47,10 @@ class HiboutikSettings(Document):
             if not self.pos_profile:
                 frappe.throw(_("Please select a POS Profile"))
 
-    def create_delete_custom_fields(self):
+            if not self.pos_invoice_webhook:
+                self.pos_invoice_webhook = self._make_pos_invoice_webhook_url()
+
+    def create_custom_fields(self):
         """When the user enables sync, make custom fields in Doctypes"""
 
         if self.enable_sync:
@@ -67,10 +77,45 @@ class HiboutikSettings(Document):
                 for df in fields:
                     create_custom_field(doctype, df)
 
+    def _make_pos_invoice_webhook_url(self):
+        """ Generate the public POS Invoice Webhook URL"""
+        endpoint = "/api/method/opossum.hiboutik_settings.pos_invoice_webhook"
+
+        try:
+            url = frappe.request.url
+        except RuntimeError:
+            # for CI Test to work
+            url = "http://localhost:8000"
+
+        server_url = "{uri.scheme}://{uri.netloc}".format(uri=urlparse(url))
+
+        delivery_url = server_url + endpoint
+
+        return delivery_url
+
+    def make_and_set_webhook_urls(self):
+        if self.enable_sync:
+            self.pos_invoice_webhook = self._make_pos_invoice_webhook_url()
+
+            hiboutik_api = HiboutikAPI(
+                account=self.instance_name,
+                user=self.username,
+                api_key=self.api_key,
+            )
+
+            connector = HiboutikConnector(hiboutik_api)
+
+            # call HiboutikConnector here
+
 
 @frappe.whitelist()
 def sync_item(json_doc):
-    """Given an Item, request sync to POS"""
+    """Given an Item, request sync to external POS"""
+
+    hiboutik_settings = frappe.get_doc("Hiboutik Settings")
+
+    if not hiboutik_settings.enable_sync:
+        return False
 
     if isinstance(json_doc, string_types):
         item_json = json.loads(json_doc)
@@ -100,11 +145,6 @@ def sync_item(json_doc):
         vat=1,
     )  # FIXME Hardcoded VAT
 
-    hiboutik_settings = frappe.get_doc("Hiboutik Settings")
-
-    if not hiboutik_settings.enable_sync:
-        return False
-
     hiboutik_api = HiboutikAPI(
         account=hiboutik_settings.instance_name,
         user=hiboutik_settings.username,
@@ -123,8 +163,14 @@ def sync_item(json_doc):
     return True
 
 
-def pos_invoice_webhook(payload_json: str):
+@frappe.whitelist(allow_guest=True)
+def pos_invoice_webhook(*args, **kwargs):
     """Receives a POS Invoice from Hiboutik"""
+
+    try:
+        data = frappe.parse_json(frappe.safe_decode(frappe.request.data))
+    except json.decoder.JSONDecodeError:
+        data = frappe.safe_decode(frappe.request.data)
 
     # XXX: we need a default POS Profile (set that in Hiboutik Settings)
     opening_entry, created = get_or_create_opening_entry(
