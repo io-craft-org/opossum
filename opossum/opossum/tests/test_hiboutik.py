@@ -1,9 +1,17 @@
+from datetime import datetime
 from decimal import Decimal
 from unittest.mock import Mock
 
 import pytest
-from opossum.opossum.hiboutik import (HiboutikConnector, Product,
-                                      ProductAttribute)
+
+from opossum.opossum.doctype.hiboutik_settings.utils import (
+    convert_payload_to_POS_invoice,
+)
+from opossum.opossum.hiboutik import (
+    HiboutikConnector,
+    Product,
+    ProductAttribute,
+)
 from opossum.opossum.models import Item
 
 
@@ -65,3 +73,24 @@ def test_sync_item_update_product(
             ProductAttribute("product_price", synced_item.price),
         ],
     )
+
+
+def test_pos_utils_convert_sale_to_invoice():
+    payload = {
+        "completed_at": "2021-04-26 15:06:34",
+        "line_items[0][product_id]": "3",
+        "line_items[0][quantity]": "2",
+        "line_items[1][product_id]": "37",
+        "line_items[1][quantity]": "1",
+    }
+
+    pos_invoice = convert_payload_to_POS_invoice(payload)
+
+    assert pos_invoice.posting_date == datetime(2021, 4, 26, 15, 6, 34)
+    assert len(pos_invoice.invoice_items) == 2
+    item1 = pos_invoice.invoice_items[0]
+    assert item1.external_id == "3"
+    assert item1.qty == 2
+    item2 = pos_invoice.invoice_items[1]
+    assert item2.external_id == "37"
+    assert item2.qty == 1
