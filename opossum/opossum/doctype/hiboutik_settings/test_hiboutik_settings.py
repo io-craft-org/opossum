@@ -23,7 +23,7 @@ class TestHiboutikSettings(unittest.TestCase):
         settings.save()
 
         article_json = json.JSONEncoder().encode(
-            {"item_code": "article1", "name": "An article"}
+            {"item_code": "article1", "name": "An article", "hiboutik_id": "T_Item1"}
         )
         assert sync_item(article_json) == False
 
@@ -38,7 +38,11 @@ class TestHiboutikSettings(unittest.TestCase):
         with patch.object(HiboutikConnector, "sync") as mock_method:
             mock_method.side_effect = HiboutikAPIError()
             article_json = json.JSONEncoder().encode(
-                {"item_code": "article1", "name": "An article"}
+                {
+                    "item_code": "article1",
+                    "name": "An article",
+                    "hiboutik_id": "T_Item1",
+                }
             )
 
             with self.assertRaises(HiboutikAPIError) as context:
@@ -56,7 +60,7 @@ class TestHiboutikSettings(unittest.TestCase):
 
         with patch.object(HiboutikConnector, "sync", return_value=item) as mock_method:
             article_json = json.JSONEncoder().encode(
-                {"item_code": item.code, "name": item.name}
+                {"item_code": item.code, "name": item.name, "hiboutik_id": "T_Item1"}
             )
             assert sync_item(article_json) == True
             mock_method.assert_called_once()

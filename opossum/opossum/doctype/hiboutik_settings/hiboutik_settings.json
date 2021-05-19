@@ -9,7 +9,8 @@
   "enable_sync",
   "instance_name",
   "username",
-  "api_key"
+  "api_key",
+  "pos_profile"
  ],
  "fields": [
   {
@@ -33,12 +34,18 @@
    "fieldname": "enable_sync",
    "fieldtype": "Check",
    "label": "Enable Synchronization"
+  },
+  {
+   "fieldname": "pos_profile",
+   "fieldtype": "Link",
+   "label": "POS Profile",
+   "options": "POS Profile"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-05-14 14:59:54.901781",
+ "modified": "2021-05-19 11:05:10.106268",
  "modified_by": "Administrator",
  "module": "Opossum",
  "name": "Hiboutik Settings",

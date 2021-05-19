@@ -8,8 +8,11 @@ import json
 
 import frappe
 from erpnext.selling.page import point_of_sale
+from erpnext.utilities.product import get_price
+from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 from frappe.model.document import Document
+from frappe.utils import flt
 from opossum.opossum.hiboutik import HiboutikAPI, HiboutikConnector
 from opossum.opossum.models import Item
 from opossum.opossum.pos_utils import (get_or_create_opening_entry,
@@ -33,6 +36,9 @@ class HiboutikSettings(Document):
 
             if not self.api_key:
                 frappe.throw(_("Please enter an API key"))
+
+            if not self.pos_profile:
+                frappe.throw(_("Please select a POS Profile"))
 
     def create_delete_custom_fields(self):
         """When the user enables sync, make custom fields in Doctypes"""
@@ -67,17 +73,32 @@ def sync_item(json_doc):
     """Given an Item, request sync to POS"""
 
     if isinstance(json_doc, string_types):
-        item_doc = json.loads(json_doc)
+        item_json = json.loads(json_doc)
     else:
         return False
 
+    item_doc = frappe.get_doc("Item", item_json["item_code"])
+
+    # Get POS Profile from Hiboutik Settings
+    hiboutik_settings = frappe.get_single("Hiboutik Settings")
+    pos_profile = frappe.get_doc("POS Profile", hiboutik_settings.pos_profile)
+
+    # Get Price given the Price List configured
+    price = get_price(
+        item_doc.item_code,
+        pos_profile.selling_price_list,
+        "",  # Customer_group
+        pos_profile.company,
+        qty=1,
+    )
+
     item = Item(
-        code=item_doc["item_code"],
-        name=item_doc["name"],
-        external_id=item_doc["hiboutik_id"],
-        price=20.0,
+        code=item_doc.item_code,
+        name=item_doc.name,
+        external_id=item_doc.hiboutik_id,
+        price=flt(price.get("price_list_rate") if price else 0.0),
         vat=1,
-    )  # FIXME Hardcoded VAT and Price
+    )  # FIXME Hardcoded VAT
 
     hiboutik_settings = frappe.get_doc("Hiboutik Settings")
 
@@ -94,10 +115,9 @@ def sync_item(json_doc):
 
     updated_item = connector.sync(item)
 
-    erp_item = frappe.get_doc("Item", updated_item.code)
-    if erp_item.hiboutik_id != updated_item.external_id:
-        erp_item.hiboutik_id = updated_item.external_id
-        erp_item.save()
+    if item_doc.hiboutik_id != updated_item.external_id:
+        item_doc.hiboutik_id = updated_item.external_id
+        item_doc.save()
         # FIXME Request page reload
 
     return True
