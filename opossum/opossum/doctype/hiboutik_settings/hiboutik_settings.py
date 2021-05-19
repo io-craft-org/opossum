@@ -17,7 +17,7 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 from frappe.model.document import Document
 from frappe.utils import flt
 from opossum.opossum.hiboutik import HiboutikAPI, HiboutikConnector
-from opossum.opossum.models import Item
+from opossum.opossum.models import Item, POSInvoice
 from opossum.opossum.pos_utils import (get_or_create_opening_entry,
                                        make_pos_invoice)
 from six import string_types
@@ -33,7 +33,7 @@ class HiboutikSettings(Document):
         self.make_and_set_webhook_urls()
 
     def validate_settings(self):
-        """ If enabled, force connection info fields to be filled """
+        """If enabled, force connection info fields to be filled"""
         if self.enable_sync:
             if not self.instance_name:
                 frappe.throw(_("Please enter an instance name"))
@@ -78,7 +78,7 @@ class HiboutikSettings(Document):
                     create_custom_field(doctype, df)
 
     def _make_pos_invoice_webhook_url(self):
-        """ Generate the public POS Invoice Webhook URL"""
+        """Generate the public POS Invoice Webhook URL"""
         endpoint = "/api/method/opossum.opossum.doctype.hiboutik_settings.hiboutik_settings.pos_invoice_webhook"
 
         try:
@@ -94,7 +94,7 @@ class HiboutikSettings(Document):
         return delivery_url
 
     def make_and_set_webhook_urls(self):
-        """ Make the Webhook URI and register it to Hiboutik"""
+        """Make the Webhook URI and register it to Hiboutik"""
         if self.enable_sync:
             self.pos_invoice_webhook = self._make_pos_invoice_webhook_url()
 
@@ -159,7 +159,7 @@ def sync_item(json_doc):
     if item_doc.hiboutik_id != updated_item.external_id:
         item_doc.hiboutik_id = updated_item.external_id
         item_doc.save()
-        # FIXME Request page reload
+        # item_doc.reload() # XXX Can't figure out how to do it
 
     return True
 
@@ -173,12 +173,15 @@ def pos_invoice_webhook(*args, **kwargs):
     except json.decoder.JSONDecodeError:
         data = frappe.safe_decode(frappe.request.data)
 
-    # XXX: we need a default POS Profile (set that in Hiboutik Settings)
+    pos_invoice = convert_payload_to_POS_invoice(data)
+
     opening_entry, created = get_or_create_opening_entry(
         "Administrator"
     )  # FIXME Hardcoded username
 
-    make_pos_invoice(opening_entry.company, opening_entry.pos_profile)
+    resolve_and_set_item_codes(pos_invoice)
+
+    make_pos_invoice(pos_invoice, opening_entry.company, opening_entry.pos_profile)
 
     # Insert a POS Invoice with update stock selected
 
@@ -186,3 +189,14 @@ def pos_invoice_webhook(*args, **kwargs):
 @frappe.whitelist
 def pos_closing_webhook():
     pass
+
+
+def resolve_and_set_item_codes(pos_invoice: POSInvoice):
+    """Set Item Code from External id field"""
+    for item in pos_invoice.invoice_items:
+        item.code = get_item_code_from_external_id(item.external_id)
+
+
+def get_item_code_from_external_id(external_id: str):
+    """Given the Hiboutik stored external ID, retrieve the ERPNext Item code"""
+    return frappe.db.get_value("Item", dict(hiboutik_id=external_id))
