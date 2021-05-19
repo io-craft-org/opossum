@@ -79,7 +79,7 @@ class HiboutikSettings(Document):
 
     def _make_pos_invoice_webhook_url(self):
         """ Generate the public POS Invoice Webhook URL"""
-        endpoint = "/api/method/opossum.hiboutik_settings.pos_invoice_webhook"
+        endpoint = "/api/method/opossum.opossum.doctype.hiboutik_settings.hiboutik_settings.pos_invoice_webhook"
 
         try:
             url = frappe.request.url
@@ -94,6 +94,7 @@ class HiboutikSettings(Document):
         return delivery_url
 
     def make_and_set_webhook_urls(self):
+        """ Make the Webhook URI and register it to Hiboutik"""
         if self.enable_sync:
             self.pos_invoice_webhook = self._make_pos_invoice_webhook_url()
 
