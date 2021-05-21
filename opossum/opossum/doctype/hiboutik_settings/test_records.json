@@ -1,9 +1,10 @@
 [
-	{
-		  "doctype": "Item",
-      "name": "Article1",
-      "item_code": "article1",
-      "stock_uom": "Meter",
-      "item_group": "Services"
-	}
+	  {
+		    "doctype": "Item",
+        "name": "article1",
+        "company": "_Test Company",
+        "item_code": "article1",
+        "stock_uom": "Meter",
+        "item_group": "Services"
+	  }
 ]

@@ -4,6 +4,8 @@
 
 import frappe
 
+from .models import POSInvoice
+
 
 def get_or_create_opening_entry(user):
     """Given a user, make sure we have a POS Opening Entry.
@@ -16,15 +18,19 @@ def get_or_create_opening_entry(user):
     )
 
     if not open_entry:
-        open_entry = frappe.new_doc("POS Opening Entry", {"user": user})
+        open_entry = frappe.new_doc(
+            "POS Opening Entry", {"user": user}
+        )  # FIXME: Should populate more fields such as POS Profile
         open_entry.insert()
         created = True
 
     return open_entry, created
 
 
-def make_pos_invoice(company, pos_profile):
+def make_pos_invoice(pos_invoice: POSInvoice, company, pos_profile):
     """Create a POS Invoice in the ERP from the external POS data"""
+
+    return True
 
     pos_inv = frappe.new_doc("POS Invoice")
     # pos_inv.update(args)
