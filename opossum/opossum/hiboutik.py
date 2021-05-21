@@ -18,26 +18,6 @@ class HiboutikAPIError(BaseException):
     pass
 
 
-class HiboutikConnector:
-    def __init__(self, api):
-        self.api = api
-
-    def sync(self, item: Item):
-        if item.external_id:
-            # FIXME: handle partial update due to some failures (some calls succeed, some don't).
-            existing_product = self.api.get_product(item.external_id)
-            update = []
-            existing_data = existing_product.data
-            for k, v in Product.create(item).data.items():
-                if existing_data[k] != v:
-                    update.append(ProductAttribute(k, v))
-            self.api.update_product(item.external_id, update)
-        else:
-            item.external_id = str(self.api.post_product(Product.create(item)))
-
-        return item
-
-
 @dataclass
 class Product:
 
@@ -78,6 +58,26 @@ class Product:
 class ProductAttribute:
     product_attribute: str
     new_value: str
+
+
+class HiboutikConnector:
+    def __init__(self, api):
+        self.api = api
+
+    def sync(self, item: Item):
+        if item.external_id:
+            # FIXME: handle partial update due to some failures (some calls succeed, some don't).
+            existing_product = self.api.get_product(item.external_id)
+            update = []
+            existing_data = existing_product.data
+            for k, v in Product.create(item).data.items():
+                if existing_data[k] != v:
+                    update.append(ProductAttribute(k, v))
+            self.api.update_product(item.external_id, update)
+        else:
+            item.external_id = str(self.api.post_product(Product.create(item)))
+
+        return item
 
 
 class HiboutikAPI:
