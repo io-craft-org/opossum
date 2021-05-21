@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from unittest import TestCase
 from unittest.mock import Mock
 
 import pytest
@@ -11,6 +12,7 @@ from opossum.opossum.hiboutik import (
     HiboutikConnector,
     Product,
     ProductAttribute,
+    Webhook,
 )
 from opossum.opossum.models import Item
 
@@ -73,6 +75,87 @@ def test_sync_item_update_product(
             ProductAttribute("product_price", synced_item.price),
         ],
     )
+
+
+class SetSaleWebhookTestCase(TestCase):
+    def setUp(self) -> None:
+        self.api = Mock(name="mocked_api")
+        self.connector = HiboutikConnector(self.api)
+        self.callback_url = "http://doesnot.exi.st/callback"
+        self.updated_callback_url = "http://stillnot.exi.st/webhook"
+        self.connector_webhook = Webhook.create_connector_webhook(
+            self.callback_url
+        )
+        self.updated_connector_webhook = Webhook.create_connector_webhook(
+            self.updated_callback_url
+        )
+        self.some_webhooks = [
+            Webhook(
+                "Some Webhook 1",
+                "http://doesnot.matt.er/callback1",
+                "sale",
+                "TEST1",
+                webhook_id=11,
+            ),
+            Webhook(
+                "Some Webhook 2",
+                "http://doesnot.matt.er/callback2",
+                "sale",
+                "TEST2",
+                webhook_id=12,
+            ),
+            Webhook(
+                "Some Webhook 3",
+                "http://doesnot.matt.er/callback3",
+                "sale",
+                "TEST3",
+                webhook_id=13,
+            ),
+        ]
+        self.webhooks_with_ours = self.some_webhooks.copy()
+        self.webhooks_with_ours.insert(2, self.connector_webhook)
+
+    def test_set_sale_webhook_creation(self):
+        connector_webhook_id = 42
+        self.api.get_webhooks.return_value = self.some_webhooks
+        self.api.post_webhook.return_value = connector_webhook_id
+
+        self.connector.set_sale_webhook(self.connector_webhook)
+
+        self.assertTrue(self.api.post_webhook.called)
+        self.api.post_webhook.assert_called_with(self.connector_webhook.data)
+
+    def test_set_sale_webhook_creation_empty_webhook_list(self):
+        connector_webhook_id = 42
+        self.api.get_webhooks.return_value = []
+        self.api.post_webhook.return_value = connector_webhook_id
+
+        self.connector.set_sale_webhook(self.connector_webhook)
+
+        self.assertTrue(self.api.post_webhook.called)
+        self.api.post_webhook.assert_called_with(self.connector_webhook.data)
+
+    def test_set_sale_webhook_update(self):
+        connector_webhook_id = 42
+        self.connector_webhook.webhook_id = connector_webhook_id
+        self.api.get_webhooks.return_value = self.webhooks_with_ours
+
+        self.connector.set_sale_webhook(self.updated_connector_webhook)
+
+        self.api.delete_webhook.assert_called_once_with(connector_webhook_id)
+        self.api.post_webhook.assert_called_once_with(
+            self.updated_connector_webhook.data
+        )
+
+    def test_set_sale_webhook_no_change(self):
+        connector_webhook_id = 42
+        self.connector_webhook.webhook_id = connector_webhook_id
+        self.api.get_webhooks.return_value = self.webhooks_with_ours
+
+        self.connector.set_sale_webhook(self.connector_webhook)
+
+        self.assertFalse(self.api.post_webhook.called)
+        self.assertFalse(self.api.delete_webhook.called)
 
 
 def test_pos_utils_convert_sale_to_invoice():
