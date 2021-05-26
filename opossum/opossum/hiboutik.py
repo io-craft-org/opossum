@@ -33,7 +33,7 @@ class Product:
     product_price: str
     product_vat: int
     product_arch: int  # Is the product archived, 0 for no, 1 for yes.
-    product_id: int = None
+    product_id: int or None = None
 
     @classmethod
     def create(cls, item: Item):
@@ -42,7 +42,7 @@ class Product:
             product_price=str(item.price),
             product_vat=item.vat,
             product_arch=int(item.deactivated),
-            product_id=item.external_id,
+            product_id=int(item.external_id) if item.external_id else None,
         )
 
     @classmethod
