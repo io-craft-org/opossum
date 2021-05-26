@@ -67,15 +67,18 @@ def test_sync_item_update_product(
 
     connector.sync(synced_item)
 
-    api.get_product.assert_called_with(synced_item.external_id)
-    api.update_product.assert_called_with(
-        synced_item.external_id,
-        [
-            ProductAttribute("product_model", synced_item.name),
-            ProductAttribute("product_price", synced_item.price),
-            ProductAttribute("product_vat", str(synced_item.vat)),
-        ],
+    call_args, call_kwargs = api.update_product.call_args
+    product_id_arg = (
+        call_args[0] if len(call_args) >= 1 else call_kwargs["product_id"]
     )
+    update_arg = call_args[1] if len(call_args) >= 2 else call_kwargs["update"]
+    assert product_id_arg == synced_item.external_id
+    for pa in [
+        ProductAttribute("product_model", synced_item.name),
+        ProductAttribute("product_price", synced_item.price),
+        ProductAttribute("product_vat", str(synced_item.vat)),
+    ]:
+        assert pa in update_arg
 
 
 class SetSaleWebhookTestCase(TestCase):
