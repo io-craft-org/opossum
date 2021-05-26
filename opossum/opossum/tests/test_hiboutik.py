@@ -44,7 +44,7 @@ def matching_outdated_product(synced_item):
     return Product(
         product_model=synced_item.name + " outdated",
         product_price=str(Decimal(synced_item.price) + Decimal(1.24)),
-        product_vat=synced_item.vat,
+        product_vat=synced_item.vat + 1,
         product_id=synced_item.external_id,
     )
 
@@ -73,6 +73,7 @@ def test_sync_item_update_product(
         [
             ProductAttribute("product_model", synced_item.name),
             ProductAttribute("product_price", synced_item.price),
+            ProductAttribute("product_vat", str(synced_item.vat)),
         ],
     )
 

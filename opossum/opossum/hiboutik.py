@@ -117,7 +117,7 @@ class HiboutikConnector:
             existing_data = existing_product.data
             for k, v in Product.create(item).data.items():
                 if existing_data[k] != v:
-                    update.append(ProductAttribute(k, v))
+                    update.append(ProductAttribute(k, str(v)))
             self.api.update_product(item.external_id, update)
         else:
             item.external_id = str(self.api.post_product(Product.create(item)))
