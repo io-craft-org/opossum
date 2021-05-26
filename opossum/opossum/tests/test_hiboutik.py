@@ -29,7 +29,13 @@ def connector(api):
 
 @pytest.fixture
 def item():
-    return Item(code="large-spoon", name="Spoon (large)", price="10.00", vat=1)
+    return Item(
+        code="large-spoon",
+        name="Spoon (large)",
+        price="10.00",
+        vat=1,
+        deactivated=False,
+    )
 
 
 @pytest.fixture
@@ -45,6 +51,7 @@ def matching_outdated_product(synced_item):
         product_model=synced_item.name + " outdated",
         product_price=str(Decimal(synced_item.price) + Decimal(1.24)),
         product_vat=synced_item.vat + 1,
+        product_arch=int(synced_item.deactivated),
         product_id=synced_item.external_id,
     )
 
@@ -79,6 +86,49 @@ def test_sync_item_update_product(
         ProductAttribute("product_vat", str(synced_item.vat)),
     ]:
         assert pa in update_arg
+
+
+class SyncItemTestCase(TestCase):
+    def setUp(self) -> None:
+        self.api = Mock(name="mocked_api")
+        self.connector = HiboutikConnector(self.api)
+        self.item = Item(
+            code="large-spoon",
+            name="Spoon (large)",
+            price="10.00",
+            vat=1,
+            deactivated=False,
+            external_id="42",
+        )
+        self.product = Product.create(self.item)
+
+    def test_sync_item_propagate_activated(self):
+        self.api.get_product.return_value = self.product
+        self.item.deactivated = False
+        self.product.product_arch = 1
+
+        self.connector.sync(self.item)
+
+        self.api.update_product.assert_called_once_with(
+            self.item.external_id,
+            [
+                ProductAttribute("product_arch", "0"),
+            ],
+        )
+
+    def test_sync_item_propagate_deactivated(self):
+        self.api.get_product.return_value = self.product
+        self.item.deactivated = True
+        self.product.product_arch = 0
+
+        self.connector.sync(self.item)
+
+        self.api.update_product.assert_called_once_with(
+            self.item.external_id,
+            [
+                ProductAttribute("product_arch", "1"),
+            ],
+        )
 
 
 class SetSaleWebhookTestCase(TestCase):

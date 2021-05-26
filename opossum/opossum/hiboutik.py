@@ -32,6 +32,7 @@ class Product:
     product_model: str
     product_price: str
     product_vat: int
+    product_arch: int  # Is the product archived, 0 for no, 1 for yes.
     product_id: int = None
 
     @classmethod
@@ -40,6 +41,7 @@ class Product:
             product_model=item.name,
             product_price=str(item.price),
             product_vat=item.vat,
+            product_arch=int(item.deactivated),
             product_id=item.external_id,
         )
 
@@ -50,6 +52,7 @@ class Product:
             product_model=data["product_model"],
             product_price=data["product_price"],
             product_vat=data["product_vat"],
+            product_arch=data["product_arch"],
         )
 
     @property

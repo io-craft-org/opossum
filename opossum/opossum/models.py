@@ -11,6 +11,7 @@ class Item:
     name: str
     price: str
     vat: int
+    deactivated: bool
     external_id: str = ""
 
 
