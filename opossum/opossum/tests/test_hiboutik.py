@@ -15,6 +15,7 @@ from opossum.opossum.hiboutik import (
     Webhook,
     Sale,
     SaleLineItem,
+    ClosedSale,
 )
 from opossum.opossum.models import Item
 
@@ -435,3 +436,33 @@ class SaleDataClassTestCase(TestCase):
             ],
         )
         self.assertEquals(sale, expected)
+
+
+class ClosedSaleDataClassTestCase(TestCase):
+    def test_closed_sale_object_creation(self):
+        data = {
+            "sale_id": 42,
+            "created_at": "2021-06-02 11:20:14",
+            "completed_at": "2021-06-02 11:20:32",
+            "store_id": 1,
+            "vendor_id": 1,
+            "unique_sale_id": "2021-06-1-1",
+            "customer_id": 0,
+            "currency": "EUR",
+            "payment": "CB",
+            "billing_address": 0,
+            "shipping_address": 0,
+            "resource_id": 0,
+            "guests_number": 0,
+            "total": "39.00",
+        }
+
+        closed_sale = ClosedSale.create_from_data(data)
+
+        expected = ClosedSale(
+            sale_id=42,
+            created_at=datetime(2021, 6, 2, 11, 20, 14),
+            completed_at=datetime(2021, 6, 2, 11, 20, 32),
+            unique_sale_id="2021-06-1-1",
+        )
+        self.assertEquals(closed_sale, expected)
