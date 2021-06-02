@@ -54,6 +54,7 @@ def create_pos_profile():
                 }
             ],
             "company": "_Test Company",
+            "currency": "EUR",
             "write_off_cost_center": "Main - _TC",
             "write_off_account": "Sales - _TC",
             "warehouse": "_Test Warehouse - _TC",
@@ -120,7 +121,9 @@ class TestHiboutikSettings(unittest.TestCase):
             external_id="T_Item1",
         )
 
-        with patch.object(HiboutikConnector, "sync", return_value=item) as mock_method:
+        with patch.object(
+            HiboutikConnector, "sync", return_value=item
+        ) as mock_method:
             article_json = json.JSONEncoder().encode(
                 {
                     "item_code": item.code,
