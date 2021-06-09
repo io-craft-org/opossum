@@ -11,7 +11,12 @@
   "username",
   "api_key",
   "pos_profile",
-  "pos_invoice_webhook"
+  "pos_invoice_webhook",
+  "taxes_section",
+  "tva_20",
+  "tva_10",
+  "tva_5_5",
+  "tva_2_1"
  ],
  "fields": [
   {
@@ -47,12 +52,42 @@
    "fieldtype": "Read Only",
    "label": "POS Invoice webhook",
    "read_only": 1
+  },
+  {
+   "description": "Ajoutez les entit\u00e9s ERPNext correspondant \u00e0 ces niveaux de taxes. ",
+   "fieldname": "taxes_section",
+   "fieldtype": "Section Break",
+   "label": "R\u00e9glage TVA"
+  },
+  {
+   "fieldname": "tva_20",
+   "fieldtype": "Link",
+   "label": "TVA 20%",
+   "options": "Item Tax Template"
+  },
+  {
+   "fieldname": "tva_10",
+   "fieldtype": "Link",
+   "label": "TVA 10%",
+   "options": "Item Tax Template"
+  },
+  {
+   "fieldname": "tva_5_5",
+   "fieldtype": "Link",
+   "label": "TVA 5,5%",
+   "options": "Item Tax Template"
+  },
+  {
+   "fieldname": "tva_2_1",
+   "fieldtype": "Link",
+   "label": "TVA 2,1%",
+   "options": "Item Tax Template"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-05-19 14:40:35.598814",
+ "modified": "2021-06-09 16:42:00",
  "modified_by": "Administrator",
  "module": "Opossum",
  "name": "Hiboutik Settings",

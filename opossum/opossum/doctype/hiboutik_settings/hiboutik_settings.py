@@ -9,8 +9,10 @@ from __future__ import unicode_literals
 
 import json
 
+from six import string_types
+from six.moves.urllib.parse import urlparse
+
 import frappe
-from erpnext.selling.page import point_of_sale
 from erpnext.utilities.product import get_price
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
@@ -18,10 +20,10 @@ from frappe.model.document import Document
 from frappe.utils import flt
 from opossum.opossum.hiboutik import HiboutikAPI, HiboutikConnector
 from opossum.opossum.models import Item, POSInvoice
-from opossum.opossum.pos_utils import (get_or_create_opening_entry,
-                                       make_pos_invoice)
-from six import string_types
-from six.moves.urllib.parse import urlparse
+from opossum.opossum.pos_utils import (
+    get_or_create_opening_entry,
+    make_pos_invoice,
+)
 
 
 class HiboutikSettings(Document):
@@ -129,6 +131,8 @@ def sync_item(json_doc):
     hiboutik_settings = frappe.get_single("Hiboutik Settings")
     pos_profile = frappe.get_doc("POS Profile", hiboutik_settings.pos_profile)
 
+    hb_tax_id = get_hiboutik_tax_id(item_doc, hiboutik_settings)
+
     # Get Price given the Price List configured
     price = get_price(
         item_doc.item_code,
@@ -143,8 +147,8 @@ def sync_item(json_doc):
         name=item_doc.name,
         external_id=item_doc.hiboutik_id,
         price=flt(price.get("price_list_rate") if price else 0.0),
-        vat=1,
-    )  # FIXME Hardcoded VAT
+        vat=hb_tax_id,
+    )
 
     hiboutik_api = HiboutikAPI(
         account=hiboutik_settings.instance_name,
@@ -181,7 +185,9 @@ def pos_invoice_webhook(*args, **kwargs):
 
     resolve_and_set_item_codes(pos_invoice)
 
-    make_pos_invoice(pos_invoice, opening_entry.company, opening_entry.pos_profile)
+    make_pos_invoice(
+        pos_invoice, opening_entry.company, opening_entry.pos_profile
+    )
 
     # Insert a POS Invoice with update stock selected
 
@@ -200,3 +206,54 @@ def resolve_and_set_item_codes(pos_invoice: POSInvoice):
 def get_item_code_from_external_id(external_id: str):
     """Given the Hiboutik stored external ID, retrieve the ERPNext Item code"""
     return frappe.db.get_value("Item", dict(hiboutik_id=external_id))
+
+
+def get_hiboutik_tax_id(item: Document, hb_settings: Document) -> int:
+    """Returns the Hiboutik's tax ID corresponding to the tax set for the Item."""
+    HIBOUTIK_20_TAX_ID = 1
+    HIBOUTIK_10_TAX_ID = 2
+    HIBOUTIK_5_5_TAX_ID = 3
+    HIBOUTIK_2_1_TAX_ID = 4
+    HIBOUTIK_NO_TAX_ID = 5
+
+    itt_name = get_item_tax_template_name(item)
+
+    if hb_settings.tva_20 == itt_name:
+        return HIBOUTIK_20_TAX_ID
+
+    if hb_settings.tva_10 == itt_name:
+        return HIBOUTIK_10_TAX_ID
+
+    if hb_settings.tva_5_5 == itt_name:
+        return HIBOUTIK_5_5_TAX_ID
+
+    if hb_settings.tva_2_1 == itt_name:
+        return HIBOUTIK_2_1_TAX_ID
+
+    return HIBOUTIK_NO_TAX_ID
+
+
+# FIXME: maybe there is an erpnext function doing a better job.
+def get_item_tax_template_name(item: Document) -> str:
+    """Given an Item returns the first Tax Template found either at the Item level
+    or at the Item Group level. Returns an empty string if no tax template has been set for this item."""
+
+    def get_item_tax():
+        try:
+            return item.taxes[0].item_tax_template
+        except IndexError:
+            return None
+
+    def get_item_group_tax():
+        group = frappe.get_doc("Item Group", item.item_group)
+        try:
+            return group.taxes[0].item_tax_template
+        except IndexError:
+            return None
+
+    for getter in [get_item_tax, get_item_group_tax]:
+        itt_name = getter()
+        if itt_name:
+            return itt_name
+
+    return ""
