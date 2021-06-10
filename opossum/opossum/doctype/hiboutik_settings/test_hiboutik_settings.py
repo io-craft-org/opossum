@@ -118,6 +118,7 @@ class TestHiboutikSettings(unittest.TestCase):
             name="An Article",
             price="10",
             vat=1,
+            is_stock_item=False,
             external_id="T_Item1",
         )
 
@@ -139,7 +140,7 @@ class TestHiboutikSettings(unittest.TestCase):
     def test_model_is_fed_from_item(self):
         doc = frappe.get_doc("Item", "_opossum_item1")
 
-        item = Item(code=doc.item_code, name=doc.name, price=10.0, vat=1)
+        item = Item(code=doc.item_code, name=doc.name, price=10.0, vat=1, is_stock_item=False)
 
         assert item.code == doc.item_code
         assert item.name == doc.name
