@@ -121,9 +121,7 @@ class TestHiboutikSettings(unittest.TestCase):
             external_id="T_Item1",
         )
 
-        with patch.object(
-            HiboutikConnector, "sync", return_value=item
-        ) as mock_method:
+        with patch.object(HiboutikConnector, "sync", return_value=item) as mock_method:
             article_json = json.JSONEncoder().encode(
                 {
                     "item_code": item.code,

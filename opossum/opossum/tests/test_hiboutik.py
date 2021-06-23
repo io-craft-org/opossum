@@ -75,9 +75,7 @@ def test_sync_item_update_product(
     connector.sync(synced_item)
 
     call_args, call_kwargs = api.update_product.call_args
-    product_id_arg = (
-        call_args[0] if len(call_args) >= 1 else call_kwargs["product_id"]
-    )
+    product_id_arg = call_args[0] if len(call_args) >= 1 else call_kwargs["product_id"]
     update_arg = call_args[1] if len(call_args) >= 2 else call_kwargs["update"]
     assert product_id_arg == synced_item.external_id
     for pa in [
@@ -137,9 +135,7 @@ class SetSaleWebhookTestCase(TestCase):
         self.connector = HiboutikConnector(self.api)
         self.callback_url = "http://doesnot.exi.st/callback"
         self.updated_callback_url = "http://stillnot.exi.st/webhook"
-        self.connector_webhook = Webhook.create_connector_webhook(
-            self.callback_url
-        )
+        self.connector_webhook = Webhook.create_connector_webhook(self.callback_url)
         self.updated_connector_webhook = Webhook.create_connector_webhook(
             self.updated_callback_url
         )

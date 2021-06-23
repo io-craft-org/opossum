@@ -11,7 +11,7 @@ LOGGER = getLogger(__name__)
 
 #: Identifies uniquely the sale webhook for Hiboutik.
 #: Allows to update with DELETE+POST if it already exists.
-SALE_WEBHOOK_APP_ID = "DOKOS"
+SALE_WEBHOOK_APP_ID = "ERPNEXT"
 
 
 class HiboutikStoreError(BaseException):
@@ -82,7 +82,7 @@ class Webhook:
     @classmethod
     def create_connector_webhook(cls, url: str):
         return Webhook(
-            webhook_label="Synchronisation des ventes avec Dokos",
+            webhook_label="Synchronisation des ventes avec ERPNEXT",
             webhook_url=url,
             webhook_action="sale",
             webhook_app_id_int=SALE_WEBHOOK_APP_ID,
@@ -172,9 +172,7 @@ class HiboutikAPI:
         LOGGER.debug(f"HIBOUTIK get products>{response.text}")
         if response.status_code != 200:
             raise HiboutikAPIError(response.json())
-        return list(
-            map(lambda p: Product.create_from_data(p), response.json())
-        )
+        return list(map(lambda p: Product.create_from_data(p), response.json()))
 
     def post_product(self, product: Product) -> int:
         response = self.session.post(
@@ -193,9 +191,7 @@ class HiboutikAPI:
             auth=HTTPBasicAuth(self.user, self.api_key),
             data=data,
         )
-        LOGGER.debug(
-            f"HIBOUTIK put product {product_id} {data}>{response.text}"
-        )
+        LOGGER.debug(f"HIBOUTIK put product {product_id} {data}>{response.text}")
         if response.status_code != 200:
             raise HiboutikAPIError(response.json())
 
@@ -222,9 +218,7 @@ class HiboutikAPI:
         LOGGER.debug(f"HIBOUTIK get webhooks > {response.text}")
         if response.status_code != 200:
             raise HiboutikAPIError(response.json())
-        return list(
-            map(lambda i: Webhook.create_from_data(i), response.json())
-        )
+        return list(map(lambda i: Webhook.create_from_data(i), response.json()))
 
     def post_webhook(self, data: dict) -> int:
         response = self.session.post(
@@ -245,9 +239,7 @@ class HiboutikAPI:
             f"{self.api_root}/webhooks/{webhook_id}",
             auth=HTTPBasicAuth(self.user, self.api_key),
         )
-        LOGGER.debug(
-            f"HIBOUTIK delete webhook {webhook_id} >\n{response.text}"
-        )
+        LOGGER.debug(f"HIBOUTIK delete webhook {webhook_id} >\n{response.text}")
         if response.status_code == 403:
             raise HiboutikAPIInsufficientRightsError(response.json())
         elif response.status_code != 200:

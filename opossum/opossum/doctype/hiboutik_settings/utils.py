@@ -33,9 +33,7 @@ def _fetch_props(data, line_index):
     return rv
 
 
-def _make_POS_invoice_item(
-    data: dict, line_index: int
-) -> POSInvoiceItem or None:
+def _make_POS_invoice_item(data: dict, line_index: int) -> POSInvoiceItem or None:
     item_data = _fetch_props(data, line_index)
     if not item_data:
         return None

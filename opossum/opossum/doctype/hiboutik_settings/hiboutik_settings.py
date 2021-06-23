@@ -18,7 +18,8 @@ from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 from frappe.model.document import Document
 from frappe.utils import flt
-from opossum.opossum.hiboutik import HiboutikAPI, HiboutikConnector
+from opossum.opossum.hiboutik import HiboutikAPI, HiboutikConnector, HiboutikAPIError
+from opossum.opossum import hiboutik
 from opossum.opossum.models import Item, POSInvoice
 from opossum.opossum.pos_utils import (
     get_or_create_opening_entry,
@@ -108,7 +109,42 @@ class HiboutikSettings(Document):
 
             connector = HiboutikConnector(hiboutik_api)
 
-            # call HiboutikConnector here
+            webhook = hiboutik.Webhook.create_connector_webhook(
+                self.pos_invoice_webhook
+            )
+            try:
+                connector.set_sale_webhook(webhook)
+            except HiboutikAPIError as e:
+                frappe.msgprint(
+                    msg="Erreur de mise en place du Webhook. Vérifiez que vous avez les droits dans l'interface Hiboutik.",
+                    title="Erreur Hiboutik",
+                    raise_exception=HiboutikAPIError,
+                )
+
+
+@frappe.whitelist()
+def sync_all_items():
+    """Synchronize all items where 'hiboutik_sync' checkbox is ticked"""
+
+    hiboutik_settings = frappe.get_doc("Hiboutik Settings")
+
+    if not hiboutik_settings.enable_sync:
+        return False
+
+    items = frappe.db.get_list(
+        "Item",
+        filters={"sync_with_hiboutik": "true", "disabled": "false"},
+        fields=["item_code"],
+    )
+
+    for item in items:
+        res = _sync_item_to_hiboutik(item["item_code"])
+        if not res:
+            frappe.msgprint(
+                msg=f"Erreur de synchronization de l'item {item.code}." % item,
+                title="Erreur Hiboutik",
+                raise_exception=HiboutikAPIError,
+            )
 
 
 @frappe.whitelist()
@@ -125,7 +161,11 @@ def sync_item(json_doc):
     else:
         return False
 
-    item_doc = frappe.get_doc("Item", item_json["item_code"])
+    _sync_item_to_hiboutik(item_json["item_code"])
+
+
+def _sync_item_to_hiboutik(item_code: str):
+    item_doc = frappe.get_doc("Item", item_code)
 
     # Get POS Profile from Hiboutik Settings
     hiboutik_settings = frappe.get_single("Hiboutik Settings")
@@ -185,9 +225,7 @@ def pos_invoice_webhook(*args, **kwargs):
 
     resolve_and_set_item_codes(pos_invoice)
 
-    make_pos_invoice(
-        pos_invoice, opening_entry.company, opening_entry.pos_profile
-    )
+    make_pos_invoice(pos_invoice, opening_entry.company, opening_entry.pos_profile)
 
     # Insert a POS Invoice with update stock selected
 
