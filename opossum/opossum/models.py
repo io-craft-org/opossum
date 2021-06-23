@@ -11,8 +11,10 @@ class Item:
     name: str
     price: str
     vat: int
+    is_stock_item: bool
     deactivated: bool = False
     external_id: str = ""
+    stock_qty: int = 0
 
 
 @dataclass

@@ -188,6 +188,7 @@ def _sync_item_to_hiboutik(item_code: str):
         external_id=item_doc.hiboutik_id,
         price=flt(price.get("price_list_rate") if price else 0.0),
         vat=hb_tax_id,
+        is_stock_item=False,
     )
 
     hiboutik_api = HiboutikAPI(

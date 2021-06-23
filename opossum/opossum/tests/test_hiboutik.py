@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 from unittest import TestCase
 from unittest.mock import Mock
 
@@ -11,8 +12,12 @@ from opossum.opossum.doctype.hiboutik_settings.utils import (
 from opossum.opossum.hiboutik import (
     HiboutikConnector,
     Product,
+    ProductStock,
     ProductAttribute,
     Webhook,
+    ProductData,
+    SyncedItem,
+    StockSyncer,
 )
 from opossum.opossum.models import Item
 
@@ -34,6 +39,7 @@ def item():
         name="Spoon (large)",
         price="10.00",
         vat=1,
+        is_stock_item=False,
         deactivated=False,
     )
 
@@ -53,6 +59,8 @@ def matching_outdated_product(synced_item):
         product_vat=synced_item.vat + 1,
         product_arch=int(synced_item.deactivated),
         product_id=synced_item.external_id,
+        product_stock_management=0,
+        stock_available=[],
     )
 
 
@@ -95,10 +103,15 @@ class SyncItemTestCase(TestCase):
             name="Spoon (large)",
             price="10.00",
             vat=1,
+            is_stock_item=False,
             deactivated=False,
             external_id="42",
         )
-        self.product = Product.create(self.item)
+        self.product = Product(
+            product_id=42,
+            stock_available=[],
+            **ProductData.create(self.item).data
+        )
 
     def test_sync_item_propagate_activated(self):
         self.api.get_product.return_value = self.product
@@ -127,6 +140,74 @@ class SyncItemTestCase(TestCase):
                 ProductAttribute("product_arch", "1"),
             ],
         )
+
+
+class StockSyncerTestCase(TestCase):
+    def setUp(self) -> None:
+        self.api = Mock(name="mocked_api")
+        self.connector = HiboutikConnector(self.api)
+        self.item = Item(
+            code="large-spoon",
+            name="Spoon (large)",
+            price="10.00",
+            vat=1,
+            is_stock_item=True,
+            external_id="42",
+            stock_qty=14,
+        )
+
+        pdata = ProductData.create(self.item)
+
+        self.product = Product(
+            product_id=int(self.item.external_id),
+            stock_available=[],
+            **pdata.data
+        )
+
+        self.synced_item = SyncedItem(
+            self.item, self.product.product_id, self.product
+        )
+
+        no_stock_item = Item(
+            code="coworking-1-day",
+            name="Coworking - 1 day pass",
+            price="13.50",
+            vat=1,
+            is_stock_item=False,
+            external_id="99",
+        )
+        self.not_stockable_item = SyncedItem(
+            no_stock_item, int(no_stock_item.external_id)
+        )
+
+    def test_sync_with_stock_increase(self):
+        self.api.post_inventory_input.return_value = Any
+        stock_diff = 4
+        self.product.stock_available = [
+            ProductStock(stock_available=self.item.stock_qty - stock_diff)
+        ]
+
+        StockSyncer(self.api).sync(self.synced_item)
+
+        self.api.post_inventory_input_for_product.assert_called_once_with(
+            product_id=self.synced_item.external_id, quantity=stock_diff
+        )
+
+    def test_sync_without_product(self):
+        self.api.post_inventory_input.return_value = Any
+        self.synced_item.product = None
+
+        StockSyncer(self.api).sync(self.synced_item)
+
+        self.api.post_inventory_input_for_product.assert_called_once_with(
+            product_id=self.synced_item.external_id,
+            quantity=self.synced_item.stock_qty,
+        )
+
+    def test_sync_not_stockable_item(self):
+        StockSyncer(self.api).sync(self.not_stockable_item)
+
+        self.api.post_inventory_input.assert_not_called()
 
 
 class SetSaleWebhookTestCase(TestCase):

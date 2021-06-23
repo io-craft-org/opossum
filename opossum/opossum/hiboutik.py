@@ -13,6 +13,9 @@ LOGGER = getLogger(__name__)
 #: Allows to update with DELETE+POST if it already exists.
 SALE_WEBHOOK_APP_ID = "ERPNEXT"
 
+HIBOUTIK_DEFAULT_STOCK_ID = 1
+HIBOUTIK_DEFAULT_PRODUCT_SIZE = 0
+
 
 class HiboutikStoreError(BaseException):
     pass
@@ -27,23 +30,44 @@ class HiboutikAPIInsufficientRightsError(BaseException):
 
 
 @dataclass
-class Product:
+class ProductData:
 
     product_model: str
     product_price: str
     product_vat: int
     product_arch: int  # Is the product archived, 0 for no, 1 for yes.
-    product_id: int or None = None
+    product_stock_management: int  # Is the product stock-managed, 0 for no, 1 for yes.
 
     @classmethod
     def create(cls, item: Item):
-        return Product(
+        return ProductData(
             product_model=item.name,
             product_price=str(item.price),
             product_vat=item.vat,
             product_arch=int(item.deactivated),
-            product_id=int(item.external_id) if item.external_id else None,
+            product_stock_management=int(item.is_stock_item),
         )
+
+    @property
+    def data(self) -> dict:
+        return self.__dict__.copy()
+
+
+@dataclass
+class ProductStock:
+
+    stock_available: int
+
+    @classmethod
+    def create_from_data(cls, data: dict):
+        return ProductStock(stock_available=data["stock_available"])
+
+
+@dataclass
+class Product(ProductData):
+
+    product_id: int
+    stock_available: List[ProductStock]
 
     @classmethod
     def create_from_data(cls, data: dict):
@@ -53,15 +77,18 @@ class Product:
             product_price=data["product_price"],
             product_vat=data["product_vat"],
             product_arch=data["product_arch"],
+            product_stock_management=data["product_stock_management"],
+            stock_available=[
+                ProductStock.create_from_data(st)
+                for st in data["stock_available"]
+            ],
         )
 
     @property
     def data(self) -> dict:
         rv = self.__dict__.copy()
-        try:
-            del rv["product_id"]
-        except KeyError:
-            pass
+        del rv["stock_available"]
+        del rv["product_id"]
         return rv
 
 
@@ -69,6 +96,18 @@ class Product:
 class ProductAttribute:
     product_attribute: str
     new_value: str
+
+
+@dataclass
+class SyncedItem(Item):
+
+    product: Product or None = None
+
+    def __init__(self, item: Item, product_id: int, product: Product = None):
+        item_data = item.__dict__.copy()
+        del item_data["external_id"]
+        Item.__init__(self, external_id=int(product_id), **item_data)
+        self.product = product
 
 
 @dataclass
@@ -108,6 +147,20 @@ class Webhook:
         return rv
 
 
+@dataclass
+class InventoryInputData:
+
+    stock_id: int
+
+
+@dataclass
+class InventoryInputDetailData:
+
+    quantity: int
+    product_id: int
+    product_size: int
+
+
 class HiboutikConnector:
     def __init__(self, api):
         self.api = api
@@ -118,12 +171,19 @@ class HiboutikConnector:
             existing_product = self.api.get_product(item.external_id)
             update = []
             existing_data = existing_product.data
-            for k, v in Product.create(item).data.items():
+            for k, v in ProductData.create(item).data.items():
                 if existing_data[k] != v:
                     update.append(ProductAttribute(k, str(v)))
             self.api.update_product(item.external_id, update)
+            synced_item = SyncedItem(
+                item, existing_product.product_id, existing_product
+            )
         else:
             item.external_id = str(self.api.post_product(Product.create(item)))
+            synced_item = SyncedItem(item, int(item.external_id))
+
+        if item.is_stock_item:
+            StockSyncer(self.api).sync(synced_item)
 
         return item
 
@@ -148,6 +208,27 @@ class HiboutikConnector:
                 self.api.post_webhook(webhook.data)
         else:
             self.api.post_webhook(webhook.data)
+
+
+class StockSyncer:
+    def __init__(self, api):
+        self.api = api
+
+    def sync(self, item: SyncedItem):
+        if not item.is_stock_item:
+            return
+
+        pos_stock = (
+            item.product.stock_available[0].stock_available
+            if item.product
+            else 0
+        )
+
+        diff = item.stock_qty - pos_stock
+        if diff != 0:
+            self.api.post_inventory_input_for_product(
+                product_id=item.external_id, quantity=diff
+            )
 
 
 class HiboutikAPI:
@@ -243,4 +324,61 @@ class HiboutikAPI:
         if response.status_code == 403:
             raise HiboutikAPIInsufficientRightsError(response.json())
         elif response.status_code != 200:
+            raise HiboutikAPIError(response.json())
+
+    def post_inventory_input_for_product(self, product_id: int, quantity: int):
+        inv_input_id = self.post_inventory_input(
+            InventoryInputData(HIBOUTIK_DEFAULT_STOCK_ID)
+        )
+        self.post_inventory_input_details(
+            inv_input_id,
+            InventoryInputDetailData(
+                quantity, product_id, HIBOUTIK_DEFAULT_PRODUCT_SIZE
+            ),
+        )
+        self.validate_inventory_input(inv_input_id)
+
+    def post_inventory_input(self, inv_input: InventoryInputData) -> int:
+        data = inv_input.__dict__.copy()
+        response = self.session.post(
+            f"{self.api_root}/inventory_inputs",
+            auth=HTTPBasicAuth(self.user, self.api_key),
+            data=data,
+        )
+        LOGGER.debug(
+            f"HIBOUTIK post inventory input\n{data}\n>\n{response.text}"
+        )
+        if response.status_code == 201:
+            return response.json()["inventory_input_id"]
+        else:
+            raise HiboutikAPIError(response.json())
+
+    def post_inventory_input_details(
+        self, inv_input_id: int, inv_input_detail: InventoryInputDetailData
+    ) -> int:
+        data = inv_input_detail.__dict__.copy()
+        response = self.session.post(
+            f"{self.api_root}/inventory_input_details/{inv_input_id}",
+            auth=HTTPBasicAuth(self.user, self.api_key),
+            data=data,
+        )
+        LOGGER.debug(
+            f"HIBOUTIK post inventory input detail\n{data}\n>\n{response.text}"
+        )
+        if response.status_code == 201:
+            return response.json()["inventory_input_detail_id"]
+        else:
+            raise HiboutikAPIError(response.json())
+
+    def validate_inventory_input(self, inventory_input_id: int):
+        data = {"inventory_input_id": inventory_input_id}
+        response = self.session.post(
+            f"{self.api_root}/inventory_input_validate",
+            auth=HTTPBasicAuth(self.user, self.api_key),
+            data=data,
+        )
+        LOGGER.debug(
+            f"HIBOUTIK post inventory input validate\n{data}\n>\n{response.text}"
+        )
+        if response.status_code != 200:
             raise HiboutikAPIError(response.json())
