@@ -220,7 +220,7 @@ class StockSyncer:
 
         pos_stock = (
             item.product.stock_available[0].stock_available
-            if item.product
+            if item.product and len(item.product.stock_available) >= 1
             else 0
         )
 
