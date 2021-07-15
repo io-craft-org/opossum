@@ -161,7 +161,7 @@ def sync_item(json_doc):
     else:
         return False
 
-    _sync_item_to_hiboutik(item_json["item_code"])
+    return _sync_item_to_hiboutik(item_json["item_code"])
 
 
 def _sync_item_to_hiboutik(item_code: str):
