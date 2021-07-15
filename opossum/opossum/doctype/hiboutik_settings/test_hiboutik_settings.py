@@ -85,7 +85,7 @@ class TestHiboutikSettings(unittest.TestCase):
     def test_sync_one_item_with_wrong_credentials(self):
         settings = frappe.get_doc("Hiboutik Settings")
         settings.enable_sync = True
-        settings.instance_name = "wrong instance name"
+        settings.instance_name = "wrong_instance_name"
         settings.username = "wrong username"
         settings.api_key = "wrong api key"
         settings.pos_profile = "_Opossum Hiboutik"
@@ -107,7 +107,7 @@ class TestHiboutikSettings(unittest.TestCase):
     def test_sync_one_item(self):
         settings = frappe.get_doc("Hiboutik Settings")
         settings.enable_sync = True
-        settings.instance_name = "valid instance name"
+        settings.instance_name = "valid_instance_name"
         settings.username = "valid username"
         settings.api_key = "valid api key"
         settings.pos_profile = "_Opossum Hiboutik"
@@ -148,7 +148,7 @@ class TestHiboutikSettings(unittest.TestCase):
     def test_enabling_hiboutik_create_custom_item_fields(self):
         settings = frappe.get_doc("Hiboutik Settings")
         settings.enable_sync = True
-        settings.instance_name = "random instance name"
+        settings.instance_name = "random_instance_name"
         settings.username = "random username"
         settings.api_key = "random api key"
         settings.pos_profile = "_Opossum Hiboutik"
