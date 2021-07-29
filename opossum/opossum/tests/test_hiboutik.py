@@ -209,6 +209,16 @@ class StockSyncerTestCase(TestCase):
 
         self.api.post_inventory_input.assert_not_called()
 
+    def test_first_sync_with_stock(self):
+        self.api.post_inventory_input.return_value = Any
+        self.product.stock_available = []
+
+        StockSyncer(self.api).sync(self.synced_item)
+
+        self.api.post_inventory_input_for_product.assert_called_once_with(
+            product_id=self.synced_item.external_id, quantity=self.synced_item.stock_qty
+        )
+
 
 class SetSaleWebhookTestCase(TestCase):
     def setUp(self) -> None:
