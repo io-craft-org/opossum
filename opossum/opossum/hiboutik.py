@@ -79,8 +79,7 @@ class Product(ProductData):
             product_arch=data["product_arch"],
             product_stock_management=data["product_stock_management"],
             stock_available=[
-                ProductStock.create_from_data(st)
-                for st in data["stock_available"]
+                ProductStock.create_from_data(st) for st in data["stock_available"]
             ],
         )
 
@@ -220,7 +219,7 @@ class StockSyncer:
 
         pos_stock = (
             item.product.stock_available[0].stock_available
-            if item.product
+            if item.product and len(item.product.stock_available) >= 1
             else 0
         )
 
@@ -345,9 +344,7 @@ class HiboutikAPI:
             auth=HTTPBasicAuth(self.user, self.api_key),
             data=data,
         )
-        LOGGER.debug(
-            f"HIBOUTIK post inventory input\n{data}\n>\n{response.text}"
-        )
+        LOGGER.debug(f"HIBOUTIK post inventory input\n{data}\n>\n{response.text}")
         if response.status_code == 201:
             return response.json()["inventory_input_id"]
         else:

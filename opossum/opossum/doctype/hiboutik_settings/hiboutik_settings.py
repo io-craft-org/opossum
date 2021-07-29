@@ -9,22 +9,18 @@ from __future__ import unicode_literals
 
 import json
 
-from six import string_types
-from six.moves.urllib.parse import urlparse
-
 import frappe
 from erpnext.utilities.product import get_price
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 from frappe.model.document import Document
 from frappe.utils import flt
-from opossum.opossum.hiboutik import HiboutikAPI, HiboutikConnector, HiboutikAPIError
 from opossum.opossum import hiboutik
+from opossum.opossum.hiboutik import HiboutikAPI, HiboutikAPIError, HiboutikConnector
 from opossum.opossum.models import Item, POSInvoice
-from opossum.opossum.pos_utils import (
-    get_or_create_opening_entry,
-    make_pos_invoice,
-)
+from opossum.opossum.pos_utils import get_or_create_opening_entry, make_pos_invoice
+from six import string_types
+from six.moves.urllib.parse import urlparse
 
 
 class HiboutikSettings(Document):
@@ -133,7 +129,7 @@ def sync_all_items():
 
     items = frappe.db.get_list(
         "Item",
-        filters={"sync_with_hiboutik": "true", "disabled": "false"},
+        filters={"sync_with_hiboutik": "1", "disabled": "false"},
         fields=["item_code"],
     )
 
@@ -167,6 +163,12 @@ def sync_item(json_doc):
 def _sync_item_to_hiboutik(item_code: str):
     item_doc = frappe.get_doc("Item", item_code)
 
+    if not item_doc.sync_with_hiboutik:
+        frappe.msgprint(
+            msg="Un Item non marqué synchronisable a été passé.",
+            title="Erreur de configuration",
+        )
+
     # Get POS Profile from Hiboutik Settings
     hiboutik_settings = frappe.get_single("Hiboutik Settings")
     pos_profile = frappe.get_doc("POS Profile", hiboutik_settings.pos_profile)
@@ -188,8 +190,29 @@ def _sync_item_to_hiboutik(item_code: str):
         external_id=item_doc.hiboutik_id,
         price=flt(price.get("price_list_rate") if price else 0.0),
         vat=hb_tax_id,
-        is_stock_item=False,
+        is_stock_item=item_doc.is_stock_item,
     )
+
+    # frappe.msgprint(msg=item.is_stock_item)
+
+    # If stocked item, fill in quantity from warehouse
+    if item.is_stock_item:
+        bins = frappe.db.get_all('Bin', fields=['item_code', 'warehouse', 'projected_qty',
+			                                    'reserved_qty', 'reserved_qty_for_production',
+                                                'reserved_qty_for_sub_contract', 'actual_qty', 'valuation_rate'],
+		                         filters=[
+                                     ['item_code', '=', item.code],
+                                     ['warehouse', '=', pos_profile.warehouse]
+                                 ])
+
+        # get the first warehouse
+        if len(bins):
+            bin = bins[0]
+        else:
+            frappe.msgprint("Quantité en stock non trouvée !")
+            return
+
+        item.stock_qty = bin['actual_qty']
 
     hiboutik_api = HiboutikAPI(
         account=hiboutik_settings.instance_name,
