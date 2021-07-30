@@ -23,7 +23,6 @@ from opossum.opossum import hiboutik
 from opossum.opossum.models import Item, POSInvoice
 from opossum.opossum.pos_utils import (
     get_or_create_opening_entry,
-    make_pos_invoice,
 )
 
 
