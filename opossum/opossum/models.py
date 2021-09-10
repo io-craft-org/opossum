@@ -23,6 +23,7 @@ class POSInvoiceItem:
 
     qty: int
     external_id: str
+    code: str = ""
     # TODO: add price and tax
 
 
