@@ -115,6 +115,10 @@ class TestHiboutikSettings(unittest.TestCase):
             settings.pos_profile = "_Opossum Hiboutik"
             settings.save()
 
+            item = frappe.get_doc("Item", "_opossum_item1")
+            item.is_stock_item = False
+            item.save()
+
             item = Item(
                 code="_opossum_item1",
                 name="An Article",
