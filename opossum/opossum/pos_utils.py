@@ -13,11 +13,19 @@ def get_or_create_opening_entry(user):
     """Given a user, make sure we have a POS Opening Entry.
     Create one if necessary."""
 
+    created = False
+    open_entry = frappe.get_last_doc(
+        "POS Opening Entry",
+        filters={"user": user, "pos_closing_entry": ["in", ["", None]], "docstatus": 1},
+    )
+
+    if open_entry:
+        return open_entry, created
+
     open_entry = frappe.new_doc(
         "POS Opening Entry"
     )  # FIXME: Should populate more fields such as POS Profile
     hb_settings = frappe.get_single("Hiboutik Settings")
-    pos_profile = frappe.get_doc("POS Profile", hb_settings.pos_profile)
     open_entry.pos_profile = hb_settings.pos_profile
     open_entry.user = "Administrator"
     open_entry.period_start_date = datetime.now()
@@ -156,11 +164,9 @@ def make_pos_invoice(pos_invoice: POSInvoice, company, pos_profile, customer, de
     #  pos_inv_doc.account_for_change_amount = args.account_for_change_amount or "Cash - _TC"
 
     pos_inv_doc.set_missing_values()
-    # pos_inv_doc.set_taxes()
-    # pos_inv_doc.insert(ignore_permissions=True)
     pos_inv_doc.insert()
     pos_inv_doc.calculate_taxes_and_totals()
-    # pos_inv_doc.submit()
+    pos_inv_doc.submit()
     frappe.db.commit()
 
     return pos_inv_doc

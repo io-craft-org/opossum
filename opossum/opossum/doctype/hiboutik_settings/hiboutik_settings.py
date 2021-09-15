@@ -16,6 +16,7 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_field
 from frappe.model.document import Document
 from frappe.utils import flt
 from opossum.opossum import hiboutik
+from opossum.opossum.doctype.hiboutik_settings.utils import convert_payload_to_POS_invoice
 from opossum.opossum.hiboutik import HiboutikAPI, HiboutikAPIError, HiboutikConnector
 from opossum.opossum.models import Item, POSInvoice
 from opossum.opossum.pos_utils import get_or_create_opening_entry, make_pos_invoice
@@ -45,6 +46,12 @@ class HiboutikSettings(Document):
 
             if not self.pos_profile:
                 frappe.throw(_("Please select a POS Profile"))
+
+            if not self.customer:
+                frappe.throw(_("Please select a default Customer for the Hiboutik POS"))
+
+            if not self.income_account:
+                frappe.throw(_("Please select a default Income Account for the Hiboutik POS"))
 
             if not self.pos_invoice_webhook:
                 self.pos_invoice_webhook = self._make_pos_invoice_webhook_url()
@@ -236,10 +243,9 @@ def _sync_item_to_hiboutik(item_code: str):
 def pos_invoice_webhook(*args, **kwargs):
     """Receives a POS Invoice from Hiboutik"""
 
-    try:
-        data = frappe.parse_json(frappe.safe_decode(frappe.request.data))
-    except json.decoder.JSONDecodeError:
-        data = frappe.safe_decode(frappe.request.data)
+    frappe.set_user("Administrator")
+
+    data = dict(frappe.request.form)
 
     pos_invoice = convert_payload_to_POS_invoice(data)
 
@@ -249,7 +255,15 @@ def pos_invoice_webhook(*args, **kwargs):
 
     resolve_and_set_item_codes(pos_invoice)
 
-    make_pos_invoice(pos_invoice, opening_entry.company, opening_entry.pos_profile)
+    hiboutik_settings = frappe.get_doc("Hiboutik Settings")
+
+    make_pos_invoice(
+        pos_invoice,
+        opening_entry.company,
+        opening_entry.pos_profile,
+        customer=hiboutik_settings.customer,
+        default_income_account=hiboutik_settings.income_account
+    )
 
     # Insert a POS Invoice with update stock selected
 
