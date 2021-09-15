@@ -61,6 +61,21 @@ def create_pos_profile():
         }
     ).insert()
 
+    account_doc = frappe.get_doc("Account", "_Test Income Account - _TC")
+    if not account_doc:
+        frappe.get_doc(
+            {
+                "doctype": "Account",
+                "account_name": "_Test Income Account",
+                "root_type": "Income",
+                "parent_account": frappe.get_list(
+                    "Account",
+                    filters={"company": "_Test Company", "root_type": "Income", "is_group": 1},
+                    pluck="name")[0],
+                "company": "_Test Company"
+            }
+        ).insert()
+
     frappe.flags.test_pos_profile_created = True
 
 
@@ -90,6 +105,8 @@ class TestHiboutikSettings(unittest.TestCase):
             settings.username = "wrong username"
             settings.api_key = "wrong api key"
             settings.pos_profile = "_Opossum Hiboutik"
+            settings.customer = "_Test Customer"
+            settings.income_account = "_Test Income Account - _TC"
             settings.save()
 
             with patch.object(HiboutikConnector, "sync") as mock_method:
@@ -113,6 +130,8 @@ class TestHiboutikSettings(unittest.TestCase):
             settings.username = "valid username"
             settings.api_key = "valid api key"
             settings.pos_profile = "_Opossum Hiboutik"
+            settings.customer = "_Test Customer"
+            settings.income_account = "_Test Income Account - _TC"
             settings.save()
 
             item = Item(
@@ -155,6 +174,8 @@ class TestHiboutikSettings(unittest.TestCase):
             settings.username = "random username"
             settings.api_key = "random api key"
             settings.pos_profile = "_Opossum Hiboutik"
+            settings.customer = "_Test Customer"
+            settings.income_account = "_Test Income Account - _TC"
             settings.save()
 
             item_dt = frappe.get_meta("Item")
