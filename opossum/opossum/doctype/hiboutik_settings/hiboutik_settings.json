@@ -11,6 +11,8 @@
   "username",
   "api_key",
   "pos_profile",
+  "customer",
+  "income_account",
   "pos_invoice_webhook",
   "taxes_section",
   "tva_20",
@@ -46,6 +48,18 @@
    "fieldtype": "Link",
    "label": "POS Profile",
    "options": "POS Profile"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "income_account",
+   "fieldtype": "Link",
+   "label": "Income Account",
+   "options": "Account"
   },
   {
    "fieldname": "pos_invoice_webhook",
@@ -87,7 +101,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2021-06-09 16:42:00",
+ "modified": "2021-09-14 12:33:00.000000",
  "modified_by": "Administrator",
  "module": "Opossum",
  "name": "Hiboutik Settings",
